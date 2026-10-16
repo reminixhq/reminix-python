@@ -1,0 +1,23 @@
+[build-system]
+requires = ["uv_build==0.12.23"]
+build-backend = "uv_build"
+
+[project]
+name = "reminix"
+version = "1.0.0rc1"
+description = "Reminix API client"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+dependencies = ["httpx>=0.27,<1"]
+
+[project.urls]
+Homepage = "https://reminix.com/docs/python/"
+Source = "https://github.com/reminixhq/reminix-python"
+
+[tool.uv.build-backend]
+module-name = "reminix"
+
+[dependency-groups]
+test = ["httpx==0.28.1", "pytest==9.1.1"]
