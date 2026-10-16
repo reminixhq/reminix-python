@@ -3,4 +3,4 @@
 PRODUCT_NAME = "Reminix"
 API_KEY_ENV = "REMINIX_API_KEY"
 DEFAULT_API = "https://api.reminix.com"
-VERSION = "1.0.0rc2"
+VERSION = "1.0.0rc3"
