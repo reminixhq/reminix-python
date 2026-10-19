@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import asyncio
-import mimetypes
 import os
 import time
 from dataclasses import dataclass
@@ -36,11 +35,11 @@ Upload = Union[FileUpload, "os.PathLike[str]", IO[bytes]]
 
 
 class RunError(Exception):
-    """A run that ended without succeeding: failed, or cancelled (an approval denied or expired)."""
+    """A run that ended without succeeding: failed, or cancelled. The API's `error` says why."""
 
     def __init__(self, run: Dict[str, Any]) -> None:
         if run.get("status") == "cancelled":
-            message = f"Run {run.get('id')} was cancelled: its approval was denied or expired"
+            message = f"Run {run.get('id')} was cancelled: {run.get('error') or 'no reason given'}"
         else:
             message = f"Run {run.get('id')} failed: {run.get('error') or 'no error message'}"
         super().__init__(message)
@@ -76,7 +75,8 @@ _UPLOAD: Any = {
 
 
 def _media(file: FileUpload) -> str:
-    return file.type or mimetypes.guess_type(file.name)[0] or "application/octet-stream"
+    # No guess here: the API takes the type from the name (one table for every client).
+    return file.type or "application/octet-stream"
 
 
 def _options(key: Optional[str]) -> Any:

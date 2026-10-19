@@ -35,7 +35,8 @@ def test_run_uploads_files_and_follows_the_run_to_its_end(sdk, tmp_path):
     assert run["output"] == 42
     upload, start, follow = seen
     assert upload.url.params["name"] == "sept.csv"
-    assert upload.headers["content-type"] == "text/csv"
+    # The API names the type from the file name.
+    assert upload.headers["content-type"] == "application/octet-stream"
     assert upload.content == b"id\n1\n"
     assert json.loads(start.content) == {"inputs": {"statement": "file_1", "orderId": "o_1"}}
     assert follow.url.path == "/v1/runs/run_1"

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
-__all__ = ["UserMe","ErrorEnvelope","Workspace","AuditEventPage","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalRequest","WorkspaceUsage","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookEndpointCreated","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","ScriptPage","Script","ScriptStats","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersion","SecretUse","ScriptVersionInput","SecretUseInput","PublishRequested","ScriptSettings","ScriptSettingsPatch","Schedule","ScheduleInput","SchedulePatch","Trigger","TriggerInput","TriggerPatch","Run","File","HeldRun","RunInput","RunPage","RunLog","Secret","SecretValue","SecretInput","Environment","EnvironmentDetail","EnvironmentUsage","EnvironmentInput","EnvironmentPatch","FilePage","FileListItem"]
+__all__ = ["UserMe","ErrorEnvelope","Workspace","AuditEventPage","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalRequest","WorkspaceUsage","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookEndpointCreated","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","ScriptPage","Script","ScriptStats","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersionUploaded","SecretUse","ScriptVersion","ScriptVersionInput","SecretUseInput","PublishRequested","ScriptSettings","ScriptSettingsPatch","Schedule","ScheduleInput","SchedulePatch","Trigger","TriggerInput","TriggerPatch","Run","File","HeldRun","RunInput","RunPage","RunLog","Secret","SecretValue","SecretInput","Environment","EnvironmentDetail","EnvironmentUsage","EnvironmentInput","EnvironmentPatch","FilePage","FileListItem"]
 
 
 class UserMe(TypedDict):
@@ -208,6 +208,16 @@ class ScriptPatch(TypedDict, total=False):
     approvalPolicy: Literal["none", "agents", "always"]  # Which runs wait for a person's approval: `none`, `agents` (runs started through an agent's token) or
 
 
+class ScriptVersionUploaded(TypedDict):
+    pass
+
+
+class SecretUse(TypedDict):
+    hosts: List[str]  # Where it is attached: of these, the hosts the run's environment's value may go to.
+    header: str
+    value: str  # The header's value; `{secret}` is replaced.
+
+
 class ScriptVersion(TypedDict):
     id: str
     number: int
@@ -228,12 +238,6 @@ class ScriptVersion(TypedDict):
     createdAt: str
 
 
-class SecretUse(TypedDict):
-    hosts: List[str]  # Where it is attached: of these, the hosts the run's environment's value may go to.
-    header: str
-    value: str  # The header's value; `{secret}` is replaced.
-
-
 class _ScriptVersionInputRequired(TypedDict):
     archive: str  # The script's folder as a .tar.gz, base64 — at most 10 MB, without its dependencies.
 
@@ -250,6 +254,10 @@ class ScriptVersionInput(_ScriptVersionInputRequired, total=False):
     readme: Optional[str]  # README.md (markdown), shown on the script's page while this version is published.
     tags: List[str]  # When given, become the script's tags.
     via: Literal["cli", "api", "app"]  # How it was uploaded (for the history). Default: api.
+    create: bool  # Create the script when there is none with this slug — named `name`, else from the folder (pyproject.
+    name: str  # When given, becomes the script's name (on creation, and on every later upload that sends it).
+    description: str  # When given, becomes the script's description, as `name`.
+    publish: bool  # Publish this version too, in the same call — exactly as "Publish a version": when the workspace need
 
 
 class _SecretUseInputRequired(TypedDict):
@@ -346,8 +354,8 @@ class _RunRequired(TypedDict):
     script: Dict[str, Any]
     version: int  # The version it ran.
     environment: str  # The environment it ran in — its secret values and rules (its name then). Choose it with the X-Enviro
-    status: Literal["awaiting_approval", "running", "succeeded", "failed", "cancelled"]  # `awaiting_approval`: held for a person (see `approvalRequestId`); `cancelled`: the approval was deni
-    error: Optional[str]
+    status: Literal["awaiting_approval", "running", "succeeded", "failed", "cancelled"]  # `awaiting_approval`: held for a person (see `approvalRequestId`); `cancelled`: it won't run or was s
+    error: Optional[str]  # Why it didn't succeed: a failed run's last lines of standard error, or why a cancelled run was cance
     startedBy: Dict[str, Any]
     interface: Literal["app", "api", "cli", "mcp", "schedule", "trigger"]
     approvalRequestId: Optional[str]
