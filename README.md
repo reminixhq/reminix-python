@@ -10,8 +10,9 @@ Reminix lets your whole team, your software and your agents run your team's scri
 pip install reminix
 ```
 
-Needs Python 3.10 or later. Set `REMINIX_API_KEY` to a key from **API
-keys** in the app.
+Needs Python 3.10 or later. Set `REMINIX_API_KEY` to a key from
+**Settings → Developers** in the app. To pass the key yourself, use
+`Reminix(api_key=key)`.
 
 ## Publish a script
 

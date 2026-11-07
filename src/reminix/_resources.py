@@ -97,14 +97,14 @@ class _Files:
             request_options,
         )
 
-    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, script: str = NOT_GIVEN, origin: Literal["input", "saved", "all"] = NOT_GIVEN, q: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "FilePage":
+    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, script: str = NOT_GIVEN, origin: Literal["input", "saved", "all"] = NOT_GIVEN, name: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "FilePage":
         """List files
 
-        Lists the files that runs saved, newest first, across the scripts you can see. A file stays in the list until it expires. Pass `?script=<slug>` for one script's files. Pass `?origin=input` for the files runs took as inputs, or `?origin=all` for both. Pass `?q=` to match file names. Each file comes with a download link that works for an hour. Paginate with the opaque `nextCursor` token."""
+        Lists the files that runs saved, newest first, across the scripts you can see. A file stays in the list until it expires. Pass `?script=<slug>` for one script's files. Pass `?origin=input` for the files runs took as inputs, or `?origin=all` for both. Pass `?name=` to match file names. Each file comes with a download link that works for an hour. Pass `?before=` to start from a moment. Paginate with the opaque `nextCursor` token."""
         return self._client._call(
-            {"method": "get", "path": "/files", "query": ["limit", "cursor", "script", "origin", "q"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "script": "script", "origin": "origin", "q": "q"}},
+            {"method": "get", "path": "/files", "query": ["limit", "cursor", "before", "script", "origin", "name"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "script": "script", "origin": "origin", "name": "name"}},
             {},
-            {"limit": limit, "cursor": cursor, "script": script, "origin": origin, "q": q},
+            {"limit": limit, "cursor": cursor, "before": before, "script": script, "origin": origin, "name": name},
             request_options,
         )
 
@@ -159,14 +159,14 @@ class _Runs:
             request_options,
         )
 
-    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, script: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "RunPage":
+    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, script: str = NOT_GIVEN, status: Literal["awaiting_approval", "running", "succeeded", "failed", "cancelled"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "RunPage":
         """List runs
 
-        Lists the workspace's runs, newest first. Pass `?script=<slug>` for one script's runs. Paginate with the opaque `nextCursor` token."""
+        Lists the workspace's runs, newest first. Pass `?script=<slug>` for one script's runs and `?status=` for runs in one state. Pass `?before=` to start from a moment. Paginate with the opaque `nextCursor` token."""
         return self._client._call(
-            {"method": "get", "path": "/runs", "query": ["limit", "cursor", "script"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "script": "script"}},
+            {"method": "get", "path": "/runs", "query": ["limit", "cursor", "before", "script", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "script": "script", "status": "status"}},
             {},
-            {"limit": limit, "cursor": cursor, "script": script},
+            {"limit": limit, "cursor": cursor, "before": before, "script": script, "status": status},
             request_options,
         )
 
@@ -566,14 +566,14 @@ class _WorkspaceAuditEvents:
     def __init__(self, client: "Client") -> None:
         self._client = client
 
-    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "AuditEventPage":
+    def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, action: str = NOT_GIVEN, actor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "AuditEventPage":
         """List workspace audit events
 
-        Lists the workspace's audit events, newest first. Paginate with the opaque `nextCursor` token. `limit` takes 1 to 100 and defaults to 25. With a personal access token, only workspace owners can call this, as with the audit page in the app. A workspace API key always can, because it acts as the workspace itself."""
+        Lists the workspace's audit events, newest first. Paginate with the opaque `nextCursor` token. `limit` takes 1 to 100 and defaults to 25. `before` starts from a moment. `action` keeps one kind of event, and `actor` what one person, key or token did. With a personal access token, only workspace owners can call this, as with the audit page in the app. A workspace API key always can, because it acts as the workspace itself."""
         return self._client._call(
-            {"method": "get", "path": "/workspace/audit-events", "query": ["limit", "cursor"], "body": False, "names": {"limit": "limit", "cursor": "cursor"}},
+            {"method": "get", "path": "/workspace/audit-events", "query": ["limit", "cursor", "before", "action", "actor"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "action": "action", "actor": "actor"}},
             {},
-            {"limit": limit, "cursor": cursor},
+            {"limit": limit, "cursor": cursor, "before": before, "action": action, "actor": actor},
             request_options,
         )
 
@@ -646,14 +646,14 @@ class _WorkspaceWebhookDeliveries:
     def __init__(self, client: "Client") -> None:
         self._client = client
 
-    def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
+    def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, status: Literal["pending", "delivered", "failed"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
         """List an endpoint's deliveries
 
-        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
         return self._client._call(
-            {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor"], "body": False, "names": {"limit": "limit", "cursor": "cursor"}},
+            {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor", "before", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "status": "status"}},
             {"endpointId": endpoint_id},
-            {"limit": limit, "cursor": cursor},
+            {"limit": limit, "cursor": cursor, "before": before, "status": status},
             request_options,
         )
 
@@ -873,14 +873,14 @@ class _AsyncFiles:
             request_options,
         )
 
-    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, script: str = NOT_GIVEN, origin: Literal["input", "saved", "all"] = NOT_GIVEN, q: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "FilePage":
+    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, script: str = NOT_GIVEN, origin: Literal["input", "saved", "all"] = NOT_GIVEN, name: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "FilePage":
         """List files
 
-        Lists the files that runs saved, newest first, across the scripts you can see. A file stays in the list until it expires. Pass `?script=<slug>` for one script's files. Pass `?origin=input` for the files runs took as inputs, or `?origin=all` for both. Pass `?q=` to match file names. Each file comes with a download link that works for an hour. Paginate with the opaque `nextCursor` token."""
+        Lists the files that runs saved, newest first, across the scripts you can see. A file stays in the list until it expires. Pass `?script=<slug>` for one script's files. Pass `?origin=input` for the files runs took as inputs, or `?origin=all` for both. Pass `?name=` to match file names. Each file comes with a download link that works for an hour. Pass `?before=` to start from a moment. Paginate with the opaque `nextCursor` token."""
         return await self._client._call(
-            {"method": "get", "path": "/files", "query": ["limit", "cursor", "script", "origin", "q"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "script": "script", "origin": "origin", "q": "q"}},
+            {"method": "get", "path": "/files", "query": ["limit", "cursor", "before", "script", "origin", "name"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "script": "script", "origin": "origin", "name": "name"}},
             {},
-            {"limit": limit, "cursor": cursor, "script": script, "origin": origin, "q": q},
+            {"limit": limit, "cursor": cursor, "before": before, "script": script, "origin": origin, "name": name},
             request_options,
         )
 
@@ -935,14 +935,14 @@ class _AsyncRuns:
             request_options,
         )
 
-    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, script: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "RunPage":
+    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, script: str = NOT_GIVEN, status: Literal["awaiting_approval", "running", "succeeded", "failed", "cancelled"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "RunPage":
         """List runs
 
-        Lists the workspace's runs, newest first. Pass `?script=<slug>` for one script's runs. Paginate with the opaque `nextCursor` token."""
+        Lists the workspace's runs, newest first. Pass `?script=<slug>` for one script's runs and `?status=` for runs in one state. Pass `?before=` to start from a moment. Paginate with the opaque `nextCursor` token."""
         return await self._client._call(
-            {"method": "get", "path": "/runs", "query": ["limit", "cursor", "script"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "script": "script"}},
+            {"method": "get", "path": "/runs", "query": ["limit", "cursor", "before", "script", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "script": "script", "status": "status"}},
             {},
-            {"limit": limit, "cursor": cursor, "script": script},
+            {"limit": limit, "cursor": cursor, "before": before, "script": script, "status": status},
             request_options,
         )
 
@@ -1342,14 +1342,14 @@ class _AsyncWorkspaceAuditEvents:
     def __init__(self, client: "AsyncClient") -> None:
         self._client = client
 
-    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "AuditEventPage":
+    async def list(self, *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, action: str = NOT_GIVEN, actor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "AuditEventPage":
         """List workspace audit events
 
-        Lists the workspace's audit events, newest first. Paginate with the opaque `nextCursor` token. `limit` takes 1 to 100 and defaults to 25. With a personal access token, only workspace owners can call this, as with the audit page in the app. A workspace API key always can, because it acts as the workspace itself."""
+        Lists the workspace's audit events, newest first. Paginate with the opaque `nextCursor` token. `limit` takes 1 to 100 and defaults to 25. `before` starts from a moment. `action` keeps one kind of event, and `actor` what one person, key or token did. With a personal access token, only workspace owners can call this, as with the audit page in the app. A workspace API key always can, because it acts as the workspace itself."""
         return await self._client._call(
-            {"method": "get", "path": "/workspace/audit-events", "query": ["limit", "cursor"], "body": False, "names": {"limit": "limit", "cursor": "cursor"}},
+            {"method": "get", "path": "/workspace/audit-events", "query": ["limit", "cursor", "before", "action", "actor"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "action": "action", "actor": "actor"}},
             {},
-            {"limit": limit, "cursor": cursor},
+            {"limit": limit, "cursor": cursor, "before": before, "action": action, "actor": actor},
             request_options,
         )
 
@@ -1422,14 +1422,14 @@ class _AsyncWorkspaceWebhookDeliveries:
     def __init__(self, client: "AsyncClient") -> None:
         self._client = client
 
-    async def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
+    async def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, status: Literal["pending", "delivered", "failed"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
         """List an endpoint's deliveries
 
-        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
         return await self._client._call(
-            {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor"], "body": False, "names": {"limit": "limit", "cursor": "cursor"}},
+            {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor", "before", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "status": "status"}},
             {"endpointId": endpoint_id},
-            {"limit": limit, "cursor": cursor},
+            {"limit": limit, "cursor": cursor, "before": before, "status": status},
             request_options,
         )
 

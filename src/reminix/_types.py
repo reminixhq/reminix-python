@@ -34,6 +34,7 @@ class AuditEvent(TypedDict):
     id: str
     action: str
     actorType: str  # Who is accountable: `user`, `staff`, `system` or `api_key`.
+    actor: Dict[str, Any]  # Who acted.
     credential: Optional[Dict[str, Any]]  # The API credential the action came through, with the name it had at the time. Null for actions taken
     createdAt: str
 
