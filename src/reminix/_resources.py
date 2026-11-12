@@ -347,7 +347,7 @@ class _ScriptVersions:
     def publish(self, slug: Union[str, int], version: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> Union["Script", "PublishRequested"]:
         """Publish a version
 
-        Makes a version the one every run of the script uses, however the run starts. Publishing an older version again rolls the script back. The script owner or a workspace owner or admin can publish. An agent's publish becomes a request that a person approves, and the call returns 202. If the workspace requires a second person to publish, everyone's publish becomes a request like this."""
+        Makes a version the one every run of the script uses, however the run starts. Publishing an older version again rolls the script back. The script owner or a workspace owner or admin can publish. When an agent connected through MCP publishes, it becomes a request that a person approves, and the call returns 202. If the workspace requires a second person to publish, everyone's publish becomes a request like this."""
         return self._client._call(
             {"method": "post", "path": "/scripts/{slug}/versions/{version}/publish", "query": [], "body": False, "names": {}},
             {"slug": slug, "version": version},
@@ -436,21 +436,32 @@ class _Triggers:
     def __init__(self, client: "Client") -> None:
         self._client = client
 
-    def create(self, slug: Union[str, int], *, name: str, event_type: str, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, environment: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
-        """Run a script on an event
+    def calls(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> Dict[str, Any]:
+        """List a webhook trigger's calls
 
-        Starts a run of the script, as you, when an event of `eventType` happens in the workspace and its data matches `filter`. GET /v1/workspace/event-types lists the event types. The run starts within about a minute of the event. A chain of triggered runs stops after 3. If every run of the script, or every run in the environment, needs approval, only workspace owners and admins can create a trigger."""
+        Returns a webhook trigger's last 20 calls, newest first: when each came, whether it started a run or repeated an earlier call, why Reminix refused it, and the run. Reminix keeps calls for 30 days."""
         return self._client._call(
-            {"method": "post", "path": "/scripts/{slug}/triggers", "query": [], "body": True, "names": {"name": "name", "event_type": "eventType", "filter": "filter", "inputs": "inputs", "environment": "environment"}},
+            {"method": "get", "path": "/scripts/{slug}/triggers/{triggerId}/calls", "query": [], "body": False, "names": {}},
+            {"slug": slug, "triggerId": trigger_id},
+            {},
+            request_options,
+        )
+
+    def create(self, slug: Union[str, int], *, type: Literal["event", "webhook"], name: str, event: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, environment: str = NOT_GIVEN, input_mode: Literal["fixed", "call", "request"] = NOT_GIVEN, locked_inputs: List[str] = NOT_GIVEN, signature: Literal["none", "stripe", "github"] = NOT_GIVEN, signing_secret: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "TriggerWithSecret":
+        """Run a script when something happens
+
+        Creates a trigger that starts a run of the script, as you. With the type `event`, a run starts when an event of `event` happens in the workspace and its data matches `filter`. GET /v1/workspace/event-types lists the event types. The run starts within about a minute of the event, and a chain of triggered runs stops after 3. With the type `webhook`, a run starts when someone calls the trigger's URL with its secret. The response carries the URL and the secret once. Only the script's owner, or a workspace owner or admin, can create a webhook trigger, and its runs wait for approval where an agent's would. For an event trigger, if every run of the script or of the environment needs approval, only workspace owners and admins can create it."""
+        return self._client._call(
+            {"method": "post", "path": "/scripts/{slug}/triggers", "query": [], "body": True, "names": {"type": "type", "name": "name", "event": "event", "filter": "filter", "inputs": "inputs", "environment": "environment", "input_mode": "inputMode", "locked_inputs": "lockedInputs", "signature": "signature", "signing_secret": "signingSecret"}},
             {"slug": slug},
-            {"name": name, "event_type": event_type, "filter": filter, "inputs": inputs, "environment": environment},
+            {"type": type, "name": name, "event": event, "filter": filter, "inputs": inputs, "environment": environment, "input_mode": input_mode, "locked_inputs": locked_inputs, "signature": signature, "signing_secret": signing_secret},
             request_options,
         )
 
     def delete(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> None:
         """Delete a trigger
 
-        Deletes a trigger. The trigger's creator, a workspace owner or admin, or a workspace API key can delete it."""
+        Deletes a trigger. The creator of an event trigger, a webhook trigger's script owner, a workspace owner or admin, or a workspace API key can delete it."""
         return self._client._call(
             {"method": "delete", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": False, "names": {}},
             {"slug": slug, "triggerId": trigger_id},
@@ -469,14 +480,25 @@ class _Triggers:
             request_options,
         )
 
-    def update(self, slug: Union[str, int], trigger_id: Union[str, int], *, name: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, enabled: bool = NOT_GIVEN, environment: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
+    def rotate_secret(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "TriggerWithSecret":
+        """Rotate a webhook trigger's secret
+
+        Gives a webhook trigger a new secret and returns its new URL, this once. The old URL stops working at once. If Reminix disabled the trigger, such as after repeated refused calls, rotating enables it again. The script's owner, a workspace owner or admin, or a workspace API key can rotate it."""
+        return self._client._call(
+            {"method": "post", "path": "/scripts/{slug}/triggers/{triggerId}/rotate-secret", "query": [], "body": False, "names": {}},
+            {"slug": slug, "triggerId": trigger_id},
+            {},
+            request_options,
+        )
+
+    def update(self, slug: Union[str, int], trigger_id: Union[str, int], *, name: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, enabled: bool = NOT_GIVEN, environment: str = NOT_GIVEN, input_mode: Literal["fixed", "call", "request"] = NOT_GIVEN, locked_inputs: List[str] = NOT_GIVEN, signature: Literal["none", "stripe", "github"] = NOT_GIVEN, signing_secret: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
         """Change a trigger
 
-        Changes a trigger's name, filter, inputs or environment, or whether it's enabled. The trigger's creator, a workspace owner or admin, or a workspace API key can change it."""
+        Changes a trigger's name, inputs or environment, or whether it's enabled. It also changes an event trigger's filter, or a webhook trigger's input mode, locked inputs and signature check. Changing the signature check needs its signing secret again. The creator of an event trigger, a webhook trigger's script owner, a workspace owner or admin, or a workspace API key can change it."""
         return self._client._call(
-            {"method": "patch", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": True, "names": {"name": "name", "filter": "filter", "inputs": "inputs", "enabled": "enabled", "environment": "environment"}},
+            {"method": "patch", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": True, "names": {"name": "name", "filter": "filter", "inputs": "inputs", "enabled": "enabled", "environment": "environment", "input_mode": "inputMode", "locked_inputs": "lockedInputs", "signature": "signature", "signing_secret": "signingSecret"}},
             {"slug": slug, "triggerId": trigger_id},
-            {"name": name, "filter": filter, "inputs": inputs, "enabled": enabled, "environment": environment},
+            {"name": name, "filter": filter, "inputs": inputs, "enabled": enabled, "environment": environment, "input_mode": input_mode, "locked_inputs": locked_inputs, "signature": signature, "signing_secret": signing_secret},
             request_options,
         )
 
@@ -1123,7 +1145,7 @@ class _AsyncScriptVersions:
     async def publish(self, slug: Union[str, int], version: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> Union["Script", "PublishRequested"]:
         """Publish a version
 
-        Makes a version the one every run of the script uses, however the run starts. Publishing an older version again rolls the script back. The script owner or a workspace owner or admin can publish. An agent's publish becomes a request that a person approves, and the call returns 202. If the workspace requires a second person to publish, everyone's publish becomes a request like this."""
+        Makes a version the one every run of the script uses, however the run starts. Publishing an older version again rolls the script back. The script owner or a workspace owner or admin can publish. When an agent connected through MCP publishes, it becomes a request that a person approves, and the call returns 202. If the workspace requires a second person to publish, everyone's publish becomes a request like this."""
         return await self._client._call(
             {"method": "post", "path": "/scripts/{slug}/versions/{version}/publish", "query": [], "body": False, "names": {}},
             {"slug": slug, "version": version},
@@ -1212,21 +1234,32 @@ class _AsyncTriggers:
     def __init__(self, client: "AsyncClient") -> None:
         self._client = client
 
-    async def create(self, slug: Union[str, int], *, name: str, event_type: str, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, environment: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
-        """Run a script on an event
+    async def calls(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> Dict[str, Any]:
+        """List a webhook trigger's calls
 
-        Starts a run of the script, as you, when an event of `eventType` happens in the workspace and its data matches `filter`. GET /v1/workspace/event-types lists the event types. The run starts within about a minute of the event. A chain of triggered runs stops after 3. If every run of the script, or every run in the environment, needs approval, only workspace owners and admins can create a trigger."""
+        Returns a webhook trigger's last 20 calls, newest first: when each came, whether it started a run or repeated an earlier call, why Reminix refused it, and the run. Reminix keeps calls for 30 days."""
         return await self._client._call(
-            {"method": "post", "path": "/scripts/{slug}/triggers", "query": [], "body": True, "names": {"name": "name", "event_type": "eventType", "filter": "filter", "inputs": "inputs", "environment": "environment"}},
+            {"method": "get", "path": "/scripts/{slug}/triggers/{triggerId}/calls", "query": [], "body": False, "names": {}},
+            {"slug": slug, "triggerId": trigger_id},
+            {},
+            request_options,
+        )
+
+    async def create(self, slug: Union[str, int], *, type: Literal["event", "webhook"], name: str, event: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, environment: str = NOT_GIVEN, input_mode: Literal["fixed", "call", "request"] = NOT_GIVEN, locked_inputs: List[str] = NOT_GIVEN, signature: Literal["none", "stripe", "github"] = NOT_GIVEN, signing_secret: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "TriggerWithSecret":
+        """Run a script when something happens
+
+        Creates a trigger that starts a run of the script, as you. With the type `event`, a run starts when an event of `event` happens in the workspace and its data matches `filter`. GET /v1/workspace/event-types lists the event types. The run starts within about a minute of the event, and a chain of triggered runs stops after 3. With the type `webhook`, a run starts when someone calls the trigger's URL with its secret. The response carries the URL and the secret once. Only the script's owner, or a workspace owner or admin, can create a webhook trigger, and its runs wait for approval where an agent's would. For an event trigger, if every run of the script or of the environment needs approval, only workspace owners and admins can create it."""
+        return await self._client._call(
+            {"method": "post", "path": "/scripts/{slug}/triggers", "query": [], "body": True, "names": {"type": "type", "name": "name", "event": "event", "filter": "filter", "inputs": "inputs", "environment": "environment", "input_mode": "inputMode", "locked_inputs": "lockedInputs", "signature": "signature", "signing_secret": "signingSecret"}},
             {"slug": slug},
-            {"name": name, "event_type": event_type, "filter": filter, "inputs": inputs, "environment": environment},
+            {"type": type, "name": name, "event": event, "filter": filter, "inputs": inputs, "environment": environment, "input_mode": input_mode, "locked_inputs": locked_inputs, "signature": signature, "signing_secret": signing_secret},
             request_options,
         )
 
     async def delete(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> None:
         """Delete a trigger
 
-        Deletes a trigger. The trigger's creator, a workspace owner or admin, or a workspace API key can delete it."""
+        Deletes a trigger. The creator of an event trigger, a webhook trigger's script owner, a workspace owner or admin, or a workspace API key can delete it."""
         return await self._client._call(
             {"method": "delete", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": False, "names": {}},
             {"slug": slug, "triggerId": trigger_id},
@@ -1245,14 +1278,25 @@ class _AsyncTriggers:
             request_options,
         )
 
-    async def update(self, slug: Union[str, int], trigger_id: Union[str, int], *, name: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, enabled: bool = NOT_GIVEN, environment: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
+    async def rotate_secret(self, slug: Union[str, int], trigger_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "TriggerWithSecret":
+        """Rotate a webhook trigger's secret
+
+        Gives a webhook trigger a new secret and returns its new URL, this once. The old URL stops working at once. If Reminix disabled the trigger, such as after repeated refused calls, rotating enables it again. The script's owner, a workspace owner or admin, or a workspace API key can rotate it."""
+        return await self._client._call(
+            {"method": "post", "path": "/scripts/{slug}/triggers/{triggerId}/rotate-secret", "query": [], "body": False, "names": {}},
+            {"slug": slug, "triggerId": trigger_id},
+            {},
+            request_options,
+        )
+
+    async def update(self, slug: Union[str, int], trigger_id: Union[str, int], *, name: str = NOT_GIVEN, filter: Dict[str, Any] = NOT_GIVEN, inputs: Dict[str, Any] = NOT_GIVEN, enabled: bool = NOT_GIVEN, environment: str = NOT_GIVEN, input_mode: Literal["fixed", "call", "request"] = NOT_GIVEN, locked_inputs: List[str] = NOT_GIVEN, signature: Literal["none", "stripe", "github"] = NOT_GIVEN, signing_secret: str = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "Trigger":
         """Change a trigger
 
-        Changes a trigger's name, filter, inputs or environment, or whether it's enabled. The trigger's creator, a workspace owner or admin, or a workspace API key can change it."""
+        Changes a trigger's name, inputs or environment, or whether it's enabled. It also changes an event trigger's filter, or a webhook trigger's input mode, locked inputs and signature check. Changing the signature check needs its signing secret again. The creator of an event trigger, a webhook trigger's script owner, a workspace owner or admin, or a workspace API key can change it."""
         return await self._client._call(
-            {"method": "patch", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": True, "names": {"name": "name", "filter": "filter", "inputs": "inputs", "enabled": "enabled", "environment": "environment"}},
+            {"method": "patch", "path": "/scripts/{slug}/triggers/{triggerId}", "query": [], "body": True, "names": {"name": "name", "filter": "filter", "inputs": "inputs", "enabled": "enabled", "environment": "environment", "input_mode": "inputMode", "locked_inputs": "lockedInputs", "signature": "signature", "signing_secret": "signingSecret"}},
             {"slug": slug, "triggerId": trigger_id},
-            {"name": name, "filter": filter, "inputs": inputs, "enabled": enabled, "environment": environment},
+            {"name": name, "filter": filter, "inputs": inputs, "enabled": enabled, "environment": environment, "input_mode": input_mode, "locked_inputs": locked_inputs, "signature": signature, "signing_secret": signing_secret},
             request_options,
         )
 

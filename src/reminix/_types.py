@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
-__all__ = ["UserMe","ErrorEnvelope","Workspace","AuditEventPage","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalRequest","WorkspaceUsage","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookEndpointCreated","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","ScriptPage","Script","ScriptStats","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersionUploaded","SecretUse","ScriptVersion","ScriptVersionInput","SecretUseInput","PublishRequested","ScriptSettings","ScriptSettingsPatch","Schedule","ScheduleInput","SchedulePatch","Trigger","TriggerInput","TriggerPatch","Run","StartedBy","File","RunAwaitingApproval","RunInput","RunPage","RunLog","Secret","SecretValue","SecretInput","Environment","EnvironmentDetail","EnvironmentUsedBy","EnvironmentInput","EnvironmentPatch","FilePage","FileListItem"]
+__all__ = ["UserMe","ErrorEnvelope","Workspace","AuditEventPage","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalRequest","WorkspaceUsage","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookEndpointCreated","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","ScriptPage","Script","ScriptStats","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersionUploaded","SecretUse","ScriptVersion","ScriptVersionInput","SecretUseInput","PublishRequested","ScriptSettings","ScriptSettingsPatch","Schedule","ScheduleInput","SchedulePatch","Trigger","TriggerWithSecret","TriggerInput","EventTriggerInput","WebhookTriggerInput","TriggerPatch","TriggerCall","Run","StartedBy","File","RunAwaitingApproval","RunInput","RunPage","RunLog","Secret","SecretValue","SecretInput","Environment","EnvironmentDetail","EnvironmentUsedBy","EnvironmentInput","EnvironmentPatch","FilePage","FileListItem"]
 
 
 class UserMe(TypedDict):
@@ -323,24 +323,50 @@ class SchedulePatch(TypedDict, total=False):
 class Trigger(TypedDict):
     id: str
     name: str
+    type: Literal["event", "webhook"]  # `event`: a workspace event starts a run. `webhook`: a call to the trigger's URL starts a run.
     environment: str  # The environment the trigger's runs use.
-    eventType: str
-    filter: Dict[str, Any]  # Event data fields, as dotted paths, that must equal these values.
-    inputs: Dict[str, Any]  # The inputs for each run. A value like "{{event.data.<path>}}" takes its value from the event.
+    event: Optional[str]  # An event trigger's event type. Null for a webhook trigger.
+    filter: Optional[Dict[str, Any]]  # An event trigger's filter: event data fields, as dotted paths, that must equal these values. Null fo
+    inputs: Dict[str, Any]  # The inputs for each run. In an event trigger, a value like "{{event.data.<path>}}" takes its value f
+    inputMode: Optional[Literal["fixed", "call", "request"]]  # A webhook trigger's input mode: `fixed` (the saved inputs), `call` (the body's fields) or `request` 
+    lockedInputs: Optional[List[str]]  # A webhook trigger's saved inputs that a call can't change. Null for an event trigger.
+    signature: Optional[Literal["none", "stripe", "github"]]  # The signature a webhook trigger checks on each call. Null for an event trigger.
     enabled: bool
     disabledReason: Optional[str]  # Why Reminix disabled the trigger, such as its creator losing access to the script.
     createdByUserId: Optional[str]
     lastRunAt: Optional[str]
 
 
-class _TriggerInputRequired(TypedDict):
+class TriggerWithSecret(TypedDict):
+    pass
+
+
+TriggerInput = Union["EventTriggerInput", "WebhookTriggerInput"]
+
+
+class _EventTriggerInputRequired(TypedDict):
+    type: Literal["event"]  # A workspace event starts the runs.
     name: str  # A name for the trigger, shown in the app.
-    eventType: str  # The event that starts a run. It can be any webhook event type, such as `run.failed`.
+    event: str  # The event that starts a run. It can be any webhook event type, such as `run.failed`.
 
 
-class TriggerInput(_TriggerInputRequired, total=False):
+class EventTriggerInput(_EventTriggerInputRequired, total=False):
     filter: Dict[str, Any]  # Event data fields, as dotted paths, that must equal these values.
     inputs: Dict[str, Any]  # The script's inputs for each run, by name. A value like "{{event.data.<path>}}" takes its value from
+    environment: str  # The environment the runs use. The default is the request's X-Environment, or else the workspace's de
+
+
+class _WebhookTriggerInputRequired(TypedDict):
+    type: Literal["webhook"]  # A call to the trigger's URL starts the runs.
+    name: str  # A name for the trigger, shown in the app.
+
+
+class WebhookTriggerInput(_WebhookTriggerInputRequired, total=False):
+    inputMode: Literal["fixed", "call", "request"]  # Where each run's inputs come from. `fixed`, the default, uses the saved `inputs` and ignores the bod
+    lockedInputs: List[str]  # Saved inputs that a call can't change.
+    signature: Literal["none", "stripe", "github"]  # Check each call's signature: `stripe` (Stripe-Signature) or `github` (X-Hub-Signature-256). The defa
+    signingSecret: str  # The provider's signing secret, with `signature` `stripe` or `github`. Reminix stores it encrypted an
+    inputs: Dict[str, Any]  # The saved inputs for each run, by name.
     environment: str  # The environment the runs use. The default is the request's X-Environment, or else the workspace's de
 
 
@@ -350,6 +376,18 @@ class TriggerPatch(TypedDict, total=False):
     inputs: Dict[str, Any]  # The script's inputs for each run, by name. A value like "{{event.data.<path>}}" takes its value from
     enabled: bool  # Whether the trigger starts runs. With `false`, it's disabled.
     environment: str  # Another environment for the trigger's runs to use.
+    inputMode: Literal["fixed", "call", "request"]  # A webhook trigger's input mode.
+    lockedInputs: List[str]  # A webhook trigger's saved inputs that a call can't change.
+    signature: Literal["none", "stripe", "github"]  # A webhook trigger's signature check.
+    signingSecret: str  # A new signing secret, with `signature` `stripe` or `github`.
+
+
+class TriggerCall(TypedDict):
+    id: str
+    receivedAt: str
+    result: Literal["started", "duplicate", "refused"]  # `started` a run, a `duplicate` of a call already answered, or `refused`.
+    reason: Optional[str]  # Why the call was refused.
+    runId: Optional[str]
 
 
 class _RunRequired(TypedDict):
@@ -360,7 +398,8 @@ class _RunRequired(TypedDict):
     status: Literal["awaiting_approval", "running", "succeeded", "failed", "cancelled"]  # The run's status. `awaiting_approval` means the run waits for a person's approval, named in `approva
     error: Optional[str]  # Why the run didn't succeed. For a failed run, this is the last lines of standard error. For a cancel
     startedBy: "StartedBy"
-    via: Literal["app", "api", "cli", "agent", "schedule", "trigger"]  # Where the run came from: the app, the API, the CLI, an agent connected through MCP, a schedule or a 
+    via: Literal["app", "api", "cli", "agent", "schedule", "trigger", "webhook"]  # Where the run came from: the app, the API, the CLI, an agent connected through MCP, a schedule, an e
+    automationName: Optional[str]  # The name of the schedule or trigger that started the run, while it exists.
     approvalRequestId: Optional[str]  # The approval request the run waits for or waited for. It's null if the run needed no approval.
     scheduleId: Optional[str]  # The schedule that started the run, if one did.
     triggerId: Optional[str]  # The trigger that started the run, if one did.
