@@ -50,6 +50,7 @@ class Member(TypedDict):
     name: str
     email: str
     role: str  # `owner`, `admin`, `member` or `guest`.
+    seat: Optional[str]  # The seat type the member holds, where the product has seat types: it decides what they do here. Null
     joinedAt: str
 
 
@@ -62,6 +63,7 @@ class Invitation(TypedDict):
     id: str
     email: str
     role: Optional[str]
+    seat: Optional[str]  # The seat type the person will hold on accepting. Null for a guest, or where the product has no seat 
     teamIds: List[str]  # The teams the person joins on accepting. Everyone except a guest also joins the default team.
     expiresAt: str
     createdAt: str

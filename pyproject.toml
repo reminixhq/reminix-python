@@ -4,8 +4,9 @@ build-backend = "uv_build"
 
 [project]
 name = "reminix"
-version = "1.0.0rc6"
+version = "1.0.0rc7"
 description = "Reminix API client"
+keywords = ["scripts", "internal-tools", "automation", "ai-agents", "mcp", "python", "sdk", "api-client", "asyncio"]
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]

@@ -649,7 +649,7 @@ class _WorkspaceWebhookDeliveries:
     def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, status: Literal["pending", "delivered", "failed"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
         """List an endpoint's deliveries
 
-        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor", "before", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "status": "status"}},
             {"endpointId": endpoint_id},
@@ -660,7 +660,7 @@ class _WorkspaceWebhookDeliveries:
     def redeliver(self, endpoint_id: Union[str, int], delivery_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryOutcome":
         """Redeliver an event
 
-        Sends a recorded delivery's event again, as a new delivery. The new delivery gets its own history entry. The event id stays the same, so receivers can deduplicate. Redelivery only works on an enabled endpoint. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Sends a recorded delivery's event again, as a new delivery. The new delivery gets its own history entry. The event id stays the same, so receivers can deduplicate. Redelivery only works on an enabled endpoint. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries/{deliveryId}/redeliver", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id, "deliveryId": delivery_id},
@@ -676,7 +676,7 @@ class _WorkspaceWebhookEndpoints:
     def create(self, *, url: str, description: str = NOT_GIVEN, event_types: List[str] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookEndpointCreated":
         """Add a webhook endpoint
 
-        Registers an HTTPS URL to receive the workspace's events. Deliveries use the same signature format as Svix. The response includes the endpoint's signing secret (`whsec_…`). You see it only once, so store it to verify deliveries. The API refuses private hosts and hosts without HTTPS. A workspace can have at most 10 endpoints. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Registers an HTTPS URL to receive the workspace's events. Deliveries use the same signature format as Svix. The response includes the endpoint's signing secret (`whsec_…`). You see it only once, so store it to verify deliveries. The API refuses private hosts and hosts without HTTPS. A workspace can have at most 10 endpoints. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints", "query": [], "body": True, "names": {"url": "url", "description": "description", "event_types": "eventTypes"}},
             {},
@@ -687,7 +687,7 @@ class _WorkspaceWebhookEndpoints:
     def delete(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> None:
         """Remove a webhook endpoint
 
-        Deletes the endpoint and its signing secret. All deliveries to the endpoint stop. Its delivery history goes with it. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Deletes the endpoint and its signing secret. All deliveries to the endpoint stop. Its delivery history goes with it. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "delete", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -698,7 +698,7 @@ class _WorkspaceWebhookEndpoints:
     def enable(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Re-enable a webhook endpoint
 
-        Resumes deliveries to an endpoint that stopped after repeated failures. The endpoint keeps its signing secret. Its failure count resets. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Resumes deliveries to an endpoint that stopped after repeated failures. The endpoint keeps its signing secret. Its failure count resets. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/enable", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -709,7 +709,7 @@ class _WorkspaceWebhookEndpoints:
     def get(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Get a webhook endpoint
 
-        Returns one endpoint without its signing secret. It shows whether the endpoint is on, its consecutive failures and its last delivery status. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Returns one endpoint without its signing secret. It shows whether the endpoint is on, its consecutive failures and its last delivery status. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -720,7 +720,7 @@ class _WorkspaceWebhookEndpoints:
     def list(self, *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpointPage":
         """List webhook endpoints
 
-        Lists the workspace's outgoing webhook endpoints, newest first. The list leaves out their signing secrets. A workspace has at most 10 endpoints, so the list is a single page. Its `nextCursor` is null. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists the workspace's outgoing webhook endpoints, newest first. The list leaves out their signing secrets. A workspace has at most 10 endpoints, so the list is a single page. Its `nextCursor` is null. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints", "query": [], "body": False, "names": {}},
             {},
@@ -731,7 +731,7 @@ class _WorkspaceWebhookEndpoints:
     def test(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryOutcome":
         """Send a test event
 
-        Sends a `ping` event to the endpoint, signed like every delivery. Use it to check that an integration verifies and accepts deliveries. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Sends a `ping` event to the endpoint, signed like every delivery. Use it to check that an integration verifies and accepts deliveries. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/test", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -742,7 +742,7 @@ class _WorkspaceWebhookEndpoints:
     def update(self, endpoint_id: Union[str, int], *, url: str = NOT_GIVEN, description: Optional[str] = NOT_GIVEN, event_types: Optional[List[str]] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Update a webhook endpoint
 
-        Changes an endpoint's URL, description or event types in place. Only the fields you send change. The endpoint keeps its signing secret, so receivers keep verifying deliveries. A new URL must pass the same checks as on create. It must use HTTPS and can't be a private host. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Changes an endpoint's URL, description or event types in place. Only the fields you send change. The endpoint keeps its signing secret, so receivers keep verifying deliveries. A new URL must pass the same checks as on create. It must use HTTPS and can't be a private host. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return self._client._call(
             {"method": "patch", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": True, "names": {"url": "url", "description": "description", "event_types": "eventTypes"}},
             {"endpointId": endpoint_id},
@@ -1425,7 +1425,7 @@ class _AsyncWorkspaceWebhookDeliveries:
     async def list(self, endpoint_id: Union[str, int], *, limit: int = NOT_GIVEN, cursor: str = NOT_GIVEN, before: str = NOT_GIVEN, status: Literal["pending", "delivered", "failed"] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryPage":
         """List an endpoint's deliveries
 
-        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists one endpoint's delivery history, newest first. Each entry shows the event's status, attempts and last HTTP status. Payloads aren't included. We keep the history for 30 days. Paginate with the opaque `nextCursor`. `before` starts from a moment, and `status` keeps one kind of delivery. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries", "query": ["limit", "cursor", "before", "status"], "body": False, "names": {"limit": "limit", "cursor": "cursor", "before": "before", "status": "status"}},
             {"endpointId": endpoint_id},
@@ -1436,7 +1436,7 @@ class _AsyncWorkspaceWebhookDeliveries:
     async def redeliver(self, endpoint_id: Union[str, int], delivery_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryOutcome":
         """Redeliver an event
 
-        Sends a recorded delivery's event again, as a new delivery. The new delivery gets its own history entry. The event id stays the same, so receivers can deduplicate. Redelivery only works on an enabled endpoint. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Sends a recorded delivery's event again, as a new delivery. The new delivery gets its own history entry. The event id stays the same, so receivers can deduplicate. Redelivery only works on an enabled endpoint. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/deliveries/{deliveryId}/redeliver", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id, "deliveryId": delivery_id},
@@ -1452,7 +1452,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def create(self, *, url: str, description: str = NOT_GIVEN, event_types: List[str] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookEndpointCreated":
         """Add a webhook endpoint
 
-        Registers an HTTPS URL to receive the workspace's events. Deliveries use the same signature format as Svix. The response includes the endpoint's signing secret (`whsec_…`). You see it only once, so store it to verify deliveries. The API refuses private hosts and hosts without HTTPS. A workspace can have at most 10 endpoints. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Registers an HTTPS URL to receive the workspace's events. Deliveries use the same signature format as Svix. The response includes the endpoint's signing secret (`whsec_…`). You see it only once, so store it to verify deliveries. The API refuses private hosts and hosts without HTTPS. A workspace can have at most 10 endpoints. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints", "query": [], "body": True, "names": {"url": "url", "description": "description", "event_types": "eventTypes"}},
             {},
@@ -1463,7 +1463,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def delete(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> None:
         """Remove a webhook endpoint
 
-        Deletes the endpoint and its signing secret. All deliveries to the endpoint stop. Its delivery history goes with it. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Deletes the endpoint and its signing secret. All deliveries to the endpoint stop. Its delivery history goes with it. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "delete", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -1474,7 +1474,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def enable(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Re-enable a webhook endpoint
 
-        Resumes deliveries to an endpoint that stopped after repeated failures. The endpoint keeps its signing secret. Its failure count resets. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Resumes deliveries to an endpoint that stopped after repeated failures. The endpoint keeps its signing secret. Its failure count resets. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/enable", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -1485,7 +1485,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def get(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Get a webhook endpoint
 
-        Returns one endpoint without its signing secret. It shows whether the endpoint is on, its consecutive failures and its last delivery status. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Returns one endpoint without its signing secret. It shows whether the endpoint is on, its consecutive failures and its last delivery status. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -1496,7 +1496,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def list(self, *, request_options: Optional[RequestOptions] = None) -> "WebhookEndpointPage":
         """List webhook endpoints
 
-        Lists the workspace's outgoing webhook endpoints, newest first. The list leaves out their signing secrets. A workspace has at most 10 endpoints, so the list is a single page. Its `nextCursor` is null. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Lists the workspace's outgoing webhook endpoints, newest first. The list leaves out their signing secrets. A workspace has at most 10 endpoints, so the list is a single page. Its `nextCursor` is null. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "get", "path": "/workspace/webhook-endpoints", "query": [], "body": False, "names": {}},
             {},
@@ -1507,7 +1507,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def test(self, endpoint_id: Union[str, int], *, request_options: Optional[RequestOptions] = None) -> "WebhookDeliveryOutcome":
         """Send a test event
 
-        Sends a `ping` event to the endpoint, signed like every delivery. Use it to check that an integration verifies and accepts deliveries. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Sends a `ping` event to the endpoint, signed like every delivery. Use it to check that an integration verifies and accepts deliveries. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "post", "path": "/workspace/webhook-endpoints/{endpointId}/test", "query": [], "body": False, "names": {}},
             {"endpointId": endpoint_id},
@@ -1518,7 +1518,7 @@ class _AsyncWorkspaceWebhookEndpoints:
     async def update(self, endpoint_id: Union[str, int], *, url: str = NOT_GIVEN, description: Optional[str] = NOT_GIVEN, event_types: Optional[List[str]] = NOT_GIVEN, request_options: Optional[RequestOptions] = None) -> "WebhookEndpoint":
         """Update a webhook endpoint
 
-        Changes an endpoint's URL, description or event types in place. Only the fields you send change. The endpoint keeps its signing secret, so receivers keep verifying deliveries. A new URL must pass the same checks as on create. It must use HTTPS and can't be a private host. With a personal access token, only workspace owners can call this. A workspace API key with this scope can."""
+        Changes an endpoint's URL, description or event types in place. Only the fields you send change. The endpoint keeps its signing secret, so receivers keep verifying deliveries. A new URL must pass the same checks as on create. It must use HTTPS and can't be a private host. With a personal access token, only the workspace owner can call this. A workspace API key with this scope can."""
         return await self._client._call(
             {"method": "patch", "path": "/workspace/webhook-endpoints/{endpointId}", "query": [], "body": True, "names": {"url": "url", "description": "description", "event_types": "eventTypes"}},
             {"endpointId": endpoint_id},
