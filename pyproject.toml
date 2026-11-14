@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "reminix"
-version = "1.0.0rc8"
+version = "1.0.0rc9"
 description = "Reminix API client"
 keywords = ["scripts", "internal-tools", "automation", "ai-agents", "mcp", "python", "sdk", "api-client", "asyncio"]
 readme = "README.md"

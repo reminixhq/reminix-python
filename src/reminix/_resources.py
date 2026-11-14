@@ -800,7 +800,7 @@ class _Workspace:
     def usage(self, *, request_options: Optional[RequestOptions] = None) -> "WorkspaceUsage":
         """Get your plan's usage this period
 
-        Returns what the workspace used this period, with one entry for each thing its plan counts. Each entry has the plan's limit, or null when there is no limit. A period is one month from the workspace's billing date. That date comes from its subscription or, without one, from the day you created the workspace. On an annual plan, the counts still reset every month from the subscription's start."""
+        Returns what the workspace used this period, with one entry for each thing its plan counts. Each entry has the plan's limit, or null when there is no limit. Each entry also says where it stands and where we start refusing new use. A period is one month from the workspace's billing date. That date comes from its subscription or, without one, from the day you created the workspace. On an annual plan, the counts still reset every month from the subscription's start."""
         return self._client._call(
             {"method": "get", "path": "/workspace/usage", "query": [], "body": False, "names": {}},
             {},
@@ -1598,7 +1598,7 @@ class _AsyncWorkspace:
     async def usage(self, *, request_options: Optional[RequestOptions] = None) -> "WorkspaceUsage":
         """Get your plan's usage this period
 
-        Returns what the workspace used this period, with one entry for each thing its plan counts. Each entry has the plan's limit, or null when there is no limit. A period is one month from the workspace's billing date. That date comes from its subscription or, without one, from the day you created the workspace. On an annual plan, the counts still reset every month from the subscription's start."""
+        Returns what the workspace used this period, with one entry for each thing its plan counts. Each entry has the plan's limit, or null when there is no limit. Each entry also says where it stands and where we start refusing new use. A period is one month from the workspace's billing date. That date comes from its subscription or, without one, from the day you created the workspace. On an annual plan, the counts still reset every month from the subscription's start."""
         return await self._client._call(
             {"method": "get", "path": "/workspace/usage", "query": [], "body": False, "names": {}},
             {},
