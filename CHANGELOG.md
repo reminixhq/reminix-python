@@ -2,6 +2,10 @@
 
 What changed in the Reminix Python SDK (`reminix`). Generated from the source on each release; newest first.
 
+## 1.0.0rc10 (2026-11-18)
+
+No user-facing changes.
+
 ## 1.0.0rc9 (2026-11-14)
 
 ### Added
