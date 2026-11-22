@@ -4,11 +4,18 @@
 # or a `FileUpload`) are uploaded first and given by id; a long run, or
 # one awaiting a person's approval, is followed until it ends; a run that
 # fails or is cancelled raises `RunError`, with the run. The finished run
-# carries its output and the files it saved, each with a download link.
+# is a `Run` model, with its output and the files it saved, each with a
+# download link.
 #
 #     reminix = Reminix()  # reads REMINIX_API_KEY
 #     run = reminix.run("unlock-account", {"email": "jane@example.com"})
-#     print(run["output"])
+#     print(run.output)
+#
+# Like every method, the helpers take `idempotency_key=`, `extra_headers=`
+# and `timeout=` (each request's limit, in seconds or an `httpx.Timeout`;
+# a timed-out request is retried). The wait as a whole has none, as in
+# other SDKs' polling helpers: an async call stops when its task is
+# cancelled, so `asyncio.timeout()` limits it.
 
 from __future__ import annotations
 
@@ -16,7 +23,11 @@ import asyncio
 import os
 import time
 from dataclasses import dataclass
-from typing import IO, Any, Callable, Dict, Mapping, Optional, Union
+from typing import IO, Any, Callable, Dict, Mapping, Optional, Union, cast
+
+from .._error import ProductError
+from .._runtime import NOT_GIVEN, Timeout
+from ..types import File, Run
 
 
 _ENDED = {"succeeded", "failed", "cancelled"}
@@ -34,14 +45,15 @@ class FileUpload:
 Upload = Union[FileUpload, "os.PathLike[str]", IO[bytes]]
 
 
-class RunError(Exception):
+class RunError(ProductError):
     """A run that ended without succeeding: failed, or cancelled. The API's `error` says why."""
 
-    def __init__(self, run: Dict[str, Any]) -> None:
-        if run.get("status") == "cancelled":
-            message = f"Run {run.get('id')} was cancelled: {run.get('error') or 'no reason given'}"
+    def __init__(self, run: Run) -> None:
+        error = getattr(run, "error", None)
+        if run.status == "cancelled":
+            message = f"Run {run.id} was cancelled: {error or 'no reason given'}"
         else:
-            message = f"Run {run.get('id')} failed: {run.get('error') or 'no error message'}"
+            message = f"Run {run.id} failed: {error or 'no error message'}"
         super().__init__(message)
         self.run = run
 
@@ -79,32 +91,66 @@ def _media(file: FileUpload) -> str:
     return file.media_type or "application/octet-stream"
 
 
-def _options(key: Optional[str]) -> Any:
-    return {"idempotency_key": key} if key else None
+def _file_key(key: Optional[str], count: int) -> Optional[str]:
+    # The nth file's key, in input order: the same on every call.
+    return f"{key}:file-{count}" if key else None
+
+
+def _approve_url(started: Any) -> Optional[str]:
+    # A model's field, or the API's own name where it came through as JSON.
+    approval = getattr(started, "approval", None)
+    if isinstance(approval, dict):
+        return cast(Optional[str], approval.get("approveUrl"))
+    return getattr(approval, "approve_url", None) if approval else None
 
 
 class ProductMethods:
-    """`reminix.run(...)` and `reminix.upload_file(...)`."""
+    """`reminix.run(...)`, `reminix.wait_for_run(...)` and `reminix.upload_file(...)`."""
 
     _call: Any
     runs: Any
     script_versions: Any
 
-    def upload_file(self, file: Upload, *, idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    def upload_file(
+        self,
+        file: Upload,
+        *,
+        idempotency_key: Optional[str] = None,
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> File:
         """Uploads a file to give a run as an input; returns it, with its `id`."""
         upload = _as_upload(file)
         return self._call(
-            _UPLOAD, {}, {"name": upload.name}, _options(idempotency_key), upload.data, _media(upload)
+            _UPLOAD,
+            {},
+            {"name": upload.name},
+            content=upload.data,
+            content_type=_media(upload),
+            cast_to=File,
+            idempotency_key=idempotency_key,
+            extra_headers=extra_headers,
+            timeout=timeout,
         )
 
-    def _with_file_ids(self, inputs: Mapping[str, Any], key: Optional[str]) -> Dict[str, Any]:
-        # The nth file's key, in input order: the same on every call.
+    def _with_file_ids(
+        self,
+        inputs: Mapping[str, Any],
+        key: Optional[str],
+        extra_headers: Optional[Mapping[str, str]],
+        timeout: Timeout,
+    ) -> Dict[str, Any]:
         count = 0
 
         def upload(value: Any) -> str:
             nonlocal count
             count += 1
-            return self.upload_file(value, idempotency_key=f"{key}:file-{count}" if key else None)["id"]
+            return self.upload_file(
+                value,
+                idempotency_key=_file_key(key, count),
+                extra_headers=extra_headers,
+                timeout=timeout,
+            ).id
 
         out: Dict[str, Any] = {}
         for name, value in inputs.items():
@@ -116,14 +162,30 @@ class ProductMethods:
                 out[name] = value
         return out
 
-    def wait_for_run(self, run: Dict[str, Any], *, poll: float = 2.0) -> Dict[str, Any]:
-        """Follows a run until it ends; raises `RunError` if it didn't succeed."""
-        while run.get("status") not in _ENDED:
-            time.sleep(poll)
-            run = self.runs.get(run["id"])
-        if run.get("status") != "succeeded":
-            raise RunError(run)
-        return run
+    def wait_for_run(
+        self,
+        run: Union[Run, str],
+        *,
+        poll_interval: float = 2.0,
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> Run:
+        """Follows a run, or a run by its id, until it ends; raises `RunError` if it didn't succeed.
+
+        `poll_interval` is how often to check, in seconds. `timeout` is each
+        request's limit, as on every method.
+        """
+        current: Run = (
+            self.runs.get(run, extra_headers=extra_headers, timeout=timeout)
+            if isinstance(run, str)
+            else run
+        )
+        while current.status not in _ENDED:
+            time.sleep(poll_interval)
+            current = self.runs.get(current.id, extra_headers=extra_headers, timeout=timeout)
+        if current.status != "succeeded":
+            raise RunError(current)
+        return current
 
     def run(
         self,
@@ -133,9 +195,11 @@ class ProductMethods:
         version: Optional[int] = None,
         wait: bool = True,
         on_approval: Optional[Callable[[Optional[str]], None]] = None,
-        poll: float = 2.0,
+        poll_interval: float = 2.0,
         idempotency_key: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> Run:
         """Runs a script and answers with the finished run.
 
         `version` runs that version (a draft, as a test run) instead of the
@@ -143,18 +207,29 @@ class ProductMethods:
         once if the run waits for a person, with the link to approve it.
         `idempotency_key` makes calling again safe: the same key and inputs
         answer with the first run instead of starting another.
+        `poll_interval` is how often to check a run that hasn't ended, in
+        seconds, and `timeout` each request's limit; the wait as a whole
+        has none.
         """
-        given = self._with_file_ids(inputs or {}, idempotency_key)
-        options = _options(idempotency_key)
+        given = self._with_file_ids(inputs or {}, idempotency_key, extra_headers, timeout)
+        options: Dict[str, Any] = {
+            "idempotency_key": idempotency_key,
+            "extra_headers": extra_headers,
+            "timeout": timeout,
+        }
         if version is None:
-            started = self.runs.create(slug, inputs=given, request_options=options)
+            started = self.runs.create(slug, inputs=given, **options)
         else:
-            started = self.script_versions.test_run(slug, version, inputs=given, request_options=options)
-        if started.get("status") == "awaiting_approval" and on_approval:
-            on_approval((started.get("approval") or {}).get("approveUrl"))
+            started = self.script_versions.test_run(slug, version, inputs=given, **options)
+        # A run awaiting approval is a Run with its `approval`.
+        run = cast(Run, started)
+        if run.status == "awaiting_approval" and on_approval:
+            on_approval(_approve_url(started))
         if not wait:
-            return started
-        return self.wait_for_run(started, poll=poll)
+            return run
+        return self.wait_for_run(
+            run, poll_interval=poll_interval, extra_headers=extra_headers, timeout=timeout
+        )
 
 
 class AsyncProductMethods:
@@ -165,24 +240,46 @@ class AsyncProductMethods:
     script_versions: Any
 
     async def upload_file(
-        self, file: Upload, *, idempotency_key: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self,
+        file: Upload,
+        *,
+        idempotency_key: Optional[str] = None,
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> File:
         """Uploads a file to give a run as an input; returns it, with its `id`."""
         upload = _as_upload(file)
         return await self._call(
-            _UPLOAD, {}, {"name": upload.name}, _options(idempotency_key), upload.data, _media(upload)
+            _UPLOAD,
+            {},
+            {"name": upload.name},
+            content=upload.data,
+            content_type=_media(upload),
+            cast_to=File,
+            idempotency_key=idempotency_key,
+            extra_headers=extra_headers,
+            timeout=timeout,
         )
 
-    async def _with_file_ids(self, inputs: Mapping[str, Any], key: Optional[str]) -> Dict[str, Any]:
+    async def _with_file_ids(
+        self,
+        inputs: Mapping[str, Any],
+        key: Optional[str],
+        extra_headers: Optional[Mapping[str, str]],
+        timeout: Timeout,
+    ) -> Dict[str, Any]:
         count = 0
 
         async def upload(value: Any) -> str:
             nonlocal count
             count += 1
             uploaded = await self.upload_file(
-                value, idempotency_key=f"{key}:file-{count}" if key else None
+                value,
+                idempotency_key=_file_key(key, count),
+                extra_headers=extra_headers,
+                timeout=timeout,
             )
-            return uploaded["id"]
+            return uploaded.id
 
         out: Dict[str, Any] = {}
         for name, value in inputs.items():
@@ -194,14 +291,30 @@ class AsyncProductMethods:
                 out[name] = value
         return out
 
-    async def wait_for_run(self, run: Dict[str, Any], *, poll: float = 2.0) -> Dict[str, Any]:
-        """Follows a run until it ends; raises `RunError` if it didn't succeed."""
-        while run.get("status") not in _ENDED:
-            await asyncio.sleep(poll)
-            run = await self.runs.get(run["id"])
-        if run.get("status") != "succeeded":
-            raise RunError(run)
-        return run
+    async def wait_for_run(
+        self,
+        run: Union[Run, str],
+        *,
+        poll_interval: float = 2.0,
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> Run:
+        """Follows a run, or a run by its id, until it ends; raises `RunError` if it didn't succeed.
+
+        `timeout` is each request's limit. To limit the whole wait, use
+        `asyncio.timeout()`: cancelling the task stops it.
+        """
+        current: Run = (
+            await self.runs.get(run, extra_headers=extra_headers, timeout=timeout)
+            if isinstance(run, str)
+            else run
+        )
+        while current.status not in _ENDED:
+            await asyncio.sleep(poll_interval)
+            current = await self.runs.get(current.id, extra_headers=extra_headers, timeout=timeout)
+        if current.status != "succeeded":
+            raise RunError(current)
+        return current
 
     async def run(
         self,
@@ -211,20 +324,27 @@ class AsyncProductMethods:
         version: Optional[int] = None,
         wait: bool = True,
         on_approval: Optional[Callable[[Optional[str]], None]] = None,
-        poll: float = 2.0,
+        poll_interval: float = 2.0,
         idempotency_key: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        extra_headers: Optional[Mapping[str, str]] = None,
+        timeout: Timeout = NOT_GIVEN,
+    ) -> Run:
         """Runs a script and answers with the finished run (see `Reminix.run`)."""
-        given = await self._with_file_ids(inputs or {}, idempotency_key)
-        options = _options(idempotency_key)
+        given = await self._with_file_ids(inputs or {}, idempotency_key, extra_headers, timeout)
+        options: Dict[str, Any] = {
+            "idempotency_key": idempotency_key,
+            "extra_headers": extra_headers,
+            "timeout": timeout,
+        }
         if version is None:
-            started = await self.runs.create(slug, inputs=given, request_options=options)
+            started = await self.runs.create(slug, inputs=given, **options)
         else:
-            started = await self.script_versions.test_run(
-                slug, version, inputs=given, request_options=options
-            )
-        if started.get("status") == "awaiting_approval" and on_approval:
-            on_approval((started.get("approval") or {}).get("approveUrl"))
+            started = await self.script_versions.test_run(slug, version, inputs=given, **options)
+        run = cast(Run, started)
+        if run.status == "awaiting_approval" and on_approval:
+            on_approval(_approve_url(started))
         if not wait:
-            return started
-        return await self.wait_for_run(started, poll=poll)
+            return run
+        return await self.wait_for_run(
+            run, poll_interval=poll_interval, extra_headers=extra_headers, timeout=timeout
+        )

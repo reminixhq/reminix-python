@@ -46,7 +46,7 @@ run = reminix.run(
     "refund-customer",
     {"orderId": "A-10423", "amount": 40, "reason": "Charged twice for the same order"},
 )
-print(run["output"])  # {"order": "A-10423", "amount": "$40.00", "refund": "re_…"}
+print(run.output)  # {"order": "A-10423", "amount": "$40.00", "refund": "re_…"}
 ```
 
 - A run that needs a person's approval waits for them. Pass
@@ -71,17 +71,20 @@ run = reminix.run(
     "monthly-report",
     {"month": "2026-09", "adjustments": Path("adjustments.csv")},
 )
-for file in run.get("files") or []:
-    if file["origin"] == "saved":
-        print(file["name"], file["downloadUrl"])
+for file in run.files or []:
+    if file.origin == "saved":
+        print(file.name, file.download_url)
 ```
 
 ## Everything else
 
 Every API operation is a typed method, named like its CLI command:
 `reminix runs list` is `reminix.runs.list()`. For asyncio, use
-`AsyncReminix`. A failure raises `ApiError` with the error's `code`,
-`message`, `status` and `request_id`.
+`AsyncReminix`. A response is a typed model, so you read its fields as
+attributes, such as `run.output`. A list goes through every page when
+you loop over it. A failure raises an `APIError` with the error's
+`code`, `message`, `status_code` and `request_id`. Every error the SDK
+raises is a `ReminixError`.
 
 ## Links
 

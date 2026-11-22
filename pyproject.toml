@@ -4,14 +4,14 @@ build-backend = "uv_build"
 
 [project]
 name = "reminix"
-version = "1.0.0rc10"
+version = "1.0.0rc12"
 description = "Reminix API client"
 keywords = ["scripts", "internal-tools", "automation", "ai-agents", "mcp", "python", "sdk", "api-client", "asyncio"]
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
-dependencies = ["httpx>=0.27,<1"]
+dependencies = ["httpx>=0.27,<1", "pydantic>=2,<3"]
 
 [project.urls]
 Homepage = "https://reminix.com/docs/python/"
@@ -22,4 +22,4 @@ Changelog = "https://github.com/reminixhq/reminix-python/blob/main/CHANGELOG.md"
 module-name = "reminix"
 
 [dependency-groups]
-test = ["httpx==0.28.1", "pytest==9.1.1"]
+test = ["httpx==0.28.1", "pydantic==2.14.4", "pytest==9.1.1"]
