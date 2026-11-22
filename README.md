@@ -56,7 +56,7 @@ print(run.output)  # {"order": "A-10423", "amount": "$40.00", "refund": "re_…"
 
 ## Files given and saved
 
-Give a file input as a path, an open file or a `FileUpload`; the SDK
+Give a file input as a `pathlib.Path`, an open file or a `FileUpload`; the SDK
 uploads it first. The files a run saves come back with a download
 link:
 
@@ -82,9 +82,9 @@ Every API operation is a typed method, named like its CLI command:
 `reminix runs list` is `reminix.runs.list()`. For asyncio, use
 `AsyncReminix`. A response is a typed model, so you read its fields as
 attributes, such as `run.output`. A list goes through every page when
-you loop over it. A failure raises an `APIError` with the error's
-`code`, `message`, `status_code` and `request_id`. Every error the SDK
-raises is a `ReminixError`.
+you loop over it. When the API returns an error, the SDK raises an
+`APIError` with the error's `code`, `message`, `status_code` and
+`request_id`. Every error a call raises is a `ReminixError`.
 
 ## Links
 

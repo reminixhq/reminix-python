@@ -20,7 +20,7 @@ class _Environments:
     def create(self, *, name: str, approval_policy: Literal["none", "agents", "always"] = NOT_GIVEN, agents_allowed: bool = NOT_GIVEN, idempotency_key: Optional[str] = None, extra_headers: Optional[Mapping[str, str]] = None, timeout: Union[Timeout, NotGiven] = NOT_GIVEN) -> Environment:
         """Add an environment
 
-        Adds an environment with no secret values yet. To save its values, call secrets.set with X-Environment set to the new environment. Workspace owners, admins and API keys can add an environment."""
+        Adds an environment with no secret values yet. To save its values, call secretValues.set with the new environment in the path. Workspace owners, admins and API keys can add an environment."""
         return self._client._call(
             {"method": "post", "path": "/environments", "query": [], "body": True, "names": {"name": "name", "approval_policy": "approvalPolicy", "agents_allowed": "agentsAllowed"}},
             {},
@@ -373,7 +373,7 @@ class _Scripts:
     def update(self, slug: Union[str, int], *, name: str = NOT_GIVEN, description: str = NOT_GIVEN, access: Literal["workspace", "teams"] = NOT_GIVEN, team_ids: List[str] = NOT_GIVEN, tags: List[str] = NOT_GIVEN, approval_policy: Literal["none", "agents", "always"] = NOT_GIVEN, idempotency_key: Optional[str] = None, extra_headers: Optional[Mapping[str, str]] = None, timeout: Union[Timeout, NotGiven] = NOT_GIVEN) -> Script:
         """Change a script
 
-        Changes a script's name, description or tags, who can see and run it, and which runs need a person's approval. The script owner, a workspace owner or admin, or a workspace API key can change a script. An agent can't change `access`, `teamIds` or `approvalPolicy`. A name, description or tags that the script's reminix.json sets (listed in `setInFile`) can't change here, and the request returns 400."""
+        Changes a script's name, description or tags, who can see and run it, and which runs need a person's approval. The script owner, a workspace owner or admin, or a workspace API key can change a script. An agent can't change `access`, `teamIds` or `approvalPolicy`. A name, description or tags that the script's reminix.json sets (listed in `setInFile`) can't change here, and the request returns 409."""
         return self._client._call(
             {"method": "patch", "path": "/scripts/{slug}", "query": [], "body": True, "names": {"name": "name", "description": "description", "access": "access", "team_ids": "teamIds", "tags": "tags", "approval_policy": "approvalPolicy"}},
             {"slug": slug},
@@ -1072,7 +1072,7 @@ class _AsyncEnvironments:
     async def create(self, *, name: str, approval_policy: Literal["none", "agents", "always"] = NOT_GIVEN, agents_allowed: bool = NOT_GIVEN, idempotency_key: Optional[str] = None, extra_headers: Optional[Mapping[str, str]] = None, timeout: Union[Timeout, NotGiven] = NOT_GIVEN) -> Environment:
         """Add an environment
 
-        Adds an environment with no secret values yet. To save its values, call secrets.set with X-Environment set to the new environment. Workspace owners, admins and API keys can add an environment."""
+        Adds an environment with no secret values yet. To save its values, call secretValues.set with the new environment in the path. Workspace owners, admins and API keys can add an environment."""
         return await self._client._call(
             {"method": "post", "path": "/environments", "query": [], "body": True, "names": {"name": "name", "approval_policy": "approvalPolicy", "agents_allowed": "agentsAllowed"}},
             {},
@@ -1425,7 +1425,7 @@ class _AsyncScripts:
     async def update(self, slug: Union[str, int], *, name: str = NOT_GIVEN, description: str = NOT_GIVEN, access: Literal["workspace", "teams"] = NOT_GIVEN, team_ids: List[str] = NOT_GIVEN, tags: List[str] = NOT_GIVEN, approval_policy: Literal["none", "agents", "always"] = NOT_GIVEN, idempotency_key: Optional[str] = None, extra_headers: Optional[Mapping[str, str]] = None, timeout: Union[Timeout, NotGiven] = NOT_GIVEN) -> Script:
         """Change a script
 
-        Changes a script's name, description or tags, who can see and run it, and which runs need a person's approval. The script owner, a workspace owner or admin, or a workspace API key can change a script. An agent can't change `access`, `teamIds` or `approvalPolicy`. A name, description or tags that the script's reminix.json sets (listed in `setInFile`) can't change here, and the request returns 400."""
+        Changes a script's name, description or tags, who can see and run it, and which runs need a person's approval. The script owner, a workspace owner or admin, or a workspace API key can change a script. An agent can't change `access`, `teamIds` or `approvalPolicy`. A name, description or tags that the script's reminix.json sets (listed in `setInFile`) can't change here, and the request returns 409."""
         return await self._client._call(
             {"method": "patch", "path": "/scripts/{slug}", "query": [], "body": True, "names": {"name": "name", "description": "description", "access": "access", "team_ids": "teamIds", "tags": "tags", "approval_policy": "approvalPolicy"}},
             {"slug": slug},
