@@ -11,7 +11,7 @@ from pydantic import Field
 
 from ._models import BaseModel
 
-__all__ = ["UserMe","UserMembership","ErrorEnvelopeErrorDetail","ErrorEnvelopeError","ErrorEnvelope","Workspace","AuditEventPage","AuditEventActor","AuditEventCredential","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalActionPage","ApprovalAction","ApprovalRequestSecret","ApprovalRequest","ApprovalRedemption","PlanUsage","PlanUsageCount","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","EventTypePage","EventType","ScriptPage","Script","ScriptStats","ScriptDetailUsedByPeople","ScriptDetailUsedBySchedule","ScriptDetailUsedByTrigger","ScriptDetailUsedByStartsScriptScript","ScriptDetailUsedByStartsScriptTrigger","ScriptDetailUsedByStartsScript","ScriptDetailUsedBy","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersionUploadedApproval","ScriptVersionUploaded","SecretUse","ScriptVersion","ScriptVersionInput","SecretUseInput","ScriptVersionPage","PublishRequestedApproval","PublishRequested","ScriptSettings","ScriptSettingsPatch","SchedulePage","Schedule","ScheduleInput","SchedulePatch","TriggerPage","Trigger","TriggerWithSecret","EventTriggerInput","WebhookTriggerInput","TriggerPatch","TriggerCallPage","TriggerCall","RunScript","Run","StartedByCredential","StartedBy","File","RunAwaitingApprovalScript","RunAwaitingApprovalApproval","RunAwaitingApproval","RunInput","RunPage","RunLog","SecretPage","Secret","SecretValue","SecretValueInput","SecretPatch","EnvironmentPage","Environment","EnvironmentDetail","EnvironmentUsedBy","EnvironmentInput","EnvironmentPatch","FilePage","FileListItemScript","FileListItemRun","FileListItemStartedByCredential","FileListItemStartedBy","FileListItem","TriggerInput"]
+__all__ = ["UserMe","UserMembership","ErrorEnvelopeErrorDetail","ErrorEnvelopeError","ErrorEnvelope","Workspace","AuditEventPage","AuditEventActor","AuditEventCredential","AuditEvent","MemberPage","Member","InvitationPage","Invitation","ApprovalActionPage","ApprovalAction","ApprovalRequestSecret","ApprovalRequest","ApprovalRedemption","PlanUsage","PlanUsageCount","PlanUsageOverage","TeamPage","Team","WebhookEndpointPage","WebhookEndpoint","WebhookDeliveryOutcome","WebhookDeliveryPage","WebhookDelivery","EventTypePage","EventType","ScriptPage","Script","ScriptStats","ScriptDetailUsedByPeople","ScriptDetailUsedBySchedule","ScriptDetailUsedByTrigger","ScriptDetailUsedByStartsScriptScript","ScriptDetailUsedByStartsScriptTrigger","ScriptDetailUsedByStartsScript","ScriptDetailUsedBy","ScriptDetail","ScriptInput","ScriptPatch","ScriptVersionUploadedApproval","ScriptVersionUploaded","SecretUse","ScriptVersion","ScriptVersionInput","SecretUseInput","ScriptVersionPage","PublishRequestedApproval","PublishRequested","ScriptSettings","ScriptSettingsPatch","SchedulePage","Schedule","ScheduleInput","SchedulePatch","TriggerPage","Trigger","TriggerWithSecret","EventTriggerInput","WebhookTriggerInput","TriggerPatch","TriggerCallPage","TriggerCall","RunScript","Run","StartedByCredential","StartedBy","File","RunAwaitingApprovalScript","RunAwaitingApprovalApproval","RunAwaitingApproval","RunInput","RunPage","RunLog","SecretPage","Secret","SecretValue","SecretValueInput","SecretPatch","EnvironmentPage","Environment","EnvironmentDetail","EnvironmentUsedBy","EnvironmentInput","EnvironmentPatch","FilePage","FileListItemScript","FileListItemRun","FileListItemStartedByCredential","FileListItemStartedBy","FileListItem","TriggerInput"]
 
 
 class UserMe(BaseModel):
@@ -181,8 +181,8 @@ class PlanUsage(BaseModel):
     """When this period began. Each period starts a month after the last one, counted from the billing date."""
     period_end: datetime = Field(alias="periodEnd")
     """When the counts reset."""
-    state: Literal["within", "grace", "stopped", "over"]
-    """Where the workspace stands, from its most limited count. The order from worst is `stopped`, `grace`, `over`, then `within`."""
+    state: Literal["within", "overage", "grace", "stopped", "over"]
+    """Where the workspace stands, from its most limited count. The order from worst is `stopped`, `grace`, `over`, `overage`, then `within`."""
     counts: List[PlanUsageCount]
     notices: Optional[List[str]] = None
     """Things to know about these numbers, such as some usage being unavailable right now."""
@@ -200,8 +200,28 @@ class PlanUsageCount(BaseModel):
     """The limit for this period. Null means unlimited. Zero means your plan includes none."""
     stops_at: Optional[int] = Field(alias="stopsAt")
     """Where we start refusing new use until the period resets. It equals `limit` when the count stops at its limit. It is higher when the count keeps running for a while past it. Null means we never refuse it."""
-    state: Literal["within", "grace", "stopped", "over"]
-    """Where the count stands. `within` is under the limit. `grace` is past the limit, still running until `stopsAt`. `stopped` means we refuse new use until `periodEnd`. `over` is past the limit of a count we never refuse."""
+    state: Literal["within", "overage", "grace", "stopped", "over"]
+    """Where the count stands. `within` is under the limit. `overage` is past the limit, with the extras billed until `stopsAt`, your spend cap. `grace` is past the limit, still running until `stopsAt`. `stopped` means we refuse new use until `periodEnd`. `over` is past the limit of a count we never refuse."""
+    overage: Optional[PlanUsageOverage] = None
+
+
+class PlanUsageOverage(BaseModel):
+    """Set when your plan bills extras past `limit`, up to a spend cap. Absent otherwise."""
+
+    label: str
+    """What the extras are called."""
+    rate: str
+    """What the extras cost on your plan."""
+    extra_units: int = Field(alias="extraUnits")
+    """How far past `limit` the count went this period. It stops growing at the spend cap."""
+    cost_cents: int = Field(alias="costCents")
+    """What the extras cost so far, in US cents. You pay for them with the next monthly invoice."""
+    cap_cents: int = Field(alias="capCents")
+    """Your spend cap for the extras, in US cents a month. At the cap, we refuse new use until the period resets."""
+    default_cap_cents: int = Field(alias="defaultCapCents")
+    """The spend cap your plan starts with, in US cents a month."""
+    cap_is_default: bool = Field(alias="capIsDefault")
+    """True while no one has changed the spend cap."""
 
 
 class TeamPage(BaseModel):
@@ -1096,5 +1116,5 @@ class FileListItem(BaseModel):
 TriggerInput = Union[EventTriggerInput, WebhookTriggerInput]
 
 
-for _model in (UserMe, UserMembership, ErrorEnvelopeErrorDetail, ErrorEnvelopeError, ErrorEnvelope, Workspace, AuditEventPage, AuditEventActor, AuditEventCredential, AuditEvent, MemberPage, Member, InvitationPage, Invitation, ApprovalActionPage, ApprovalAction, ApprovalRequestSecret, ApprovalRequest, ApprovalRedemption, PlanUsage, PlanUsageCount, TeamPage, Team, WebhookEndpointPage, WebhookEndpoint, WebhookDeliveryOutcome, WebhookDeliveryPage, WebhookDelivery, EventTypePage, EventType, ScriptPage, Script, ScriptStats, ScriptDetailUsedByPeople, ScriptDetailUsedBySchedule, ScriptDetailUsedByTrigger, ScriptDetailUsedByStartsScriptScript, ScriptDetailUsedByStartsScriptTrigger, ScriptDetailUsedByStartsScript, ScriptDetailUsedBy, ScriptDetail, ScriptInput, ScriptPatch, ScriptVersionUploadedApproval, ScriptVersionUploaded, SecretUse, ScriptVersion, ScriptVersionInput, SecretUseInput, ScriptVersionPage, PublishRequestedApproval, PublishRequested, ScriptSettings, ScriptSettingsPatch, SchedulePage, Schedule, ScheduleInput, SchedulePatch, TriggerPage, Trigger, TriggerWithSecret, EventTriggerInput, WebhookTriggerInput, TriggerPatch, TriggerCallPage, TriggerCall, RunScript, Run, StartedByCredential, StartedBy, File, RunAwaitingApprovalScript, RunAwaitingApprovalApproval, RunAwaitingApproval, RunInput, RunPage, RunLog, SecretPage, Secret, SecretValue, SecretValueInput, SecretPatch, EnvironmentPage, Environment, EnvironmentDetail, EnvironmentUsedBy, EnvironmentInput, EnvironmentPatch, FilePage, FileListItemScript, FileListItemRun, FileListItemStartedByCredential, FileListItemStartedBy, FileListItem,):
+for _model in (UserMe, UserMembership, ErrorEnvelopeErrorDetail, ErrorEnvelopeError, ErrorEnvelope, Workspace, AuditEventPage, AuditEventActor, AuditEventCredential, AuditEvent, MemberPage, Member, InvitationPage, Invitation, ApprovalActionPage, ApprovalAction, ApprovalRequestSecret, ApprovalRequest, ApprovalRedemption, PlanUsage, PlanUsageCount, PlanUsageOverage, TeamPage, Team, WebhookEndpointPage, WebhookEndpoint, WebhookDeliveryOutcome, WebhookDeliveryPage, WebhookDelivery, EventTypePage, EventType, ScriptPage, Script, ScriptStats, ScriptDetailUsedByPeople, ScriptDetailUsedBySchedule, ScriptDetailUsedByTrigger, ScriptDetailUsedByStartsScriptScript, ScriptDetailUsedByStartsScriptTrigger, ScriptDetailUsedByStartsScript, ScriptDetailUsedBy, ScriptDetail, ScriptInput, ScriptPatch, ScriptVersionUploadedApproval, ScriptVersionUploaded, SecretUse, ScriptVersion, ScriptVersionInput, SecretUseInput, ScriptVersionPage, PublishRequestedApproval, PublishRequested, ScriptSettings, ScriptSettingsPatch, SchedulePage, Schedule, ScheduleInput, SchedulePatch, TriggerPage, Trigger, TriggerWithSecret, EventTriggerInput, WebhookTriggerInput, TriggerPatch, TriggerCallPage, TriggerCall, RunScript, Run, StartedByCredential, StartedBy, File, RunAwaitingApprovalScript, RunAwaitingApprovalApproval, RunAwaitingApproval, RunInput, RunPage, RunLog, SecretPage, Secret, SecretValue, SecretValueInput, SecretPatch, EnvironmentPage, Environment, EnvironmentDetail, EnvironmentUsedBy, EnvironmentInput, EnvironmentPatch, FilePage, FileListItemScript, FileListItemRun, FileListItemStartedByCredential, FileListItemStartedBy, FileListItem,):
     _model.model_rebuild()
